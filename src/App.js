@@ -1,9 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import "@tensorflow/tfjs";
-// Register WebGL backend.
 import "@tensorflow/tfjs-backend-webgl";
 import "@mediapipe/face_mesh";
 import Webcam from "react-webcam";
+import * as faceapi from "@vladmandic/face-api";
 import { runDetector } from "./utils/detector";
 
 const inputResolution = {
@@ -15,17 +15,28 @@ const videoConstraints = {
   height: inputResolution.height,
   facingMode: "user",
 };
+
 function App() {
   const canvasRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
+  const [emotions, setEmotions] = useState([]);
+
+  useEffect(() => {
+    const loadModels = async () => {
+      await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+      await faceapi.nets.faceExpressionNet.loadFromUri("/models");
+    };
+    loadModels();
+  }, []);
 
   const handleVideoLoad = (videoNode) => {
     const video = videoNode.target;
     if (video.readyState !== 4) return;
     if (loaded) return;
-    runDetector(video, canvasRef.current);
+    runDetector(video, canvasRef.current, setEmotions);
     setLoaded(true);
   };
+
   return (
     <div>
       <Webcam
@@ -41,7 +52,15 @@ function App() {
         height={inputResolution.height}
         style={{ position: "absolute" }}
       />
-      {loaded ? <></> : <header>Loading...</header>}
+      {loaded ? (
+        <div>
+          {emotions.map((emotion, index) => (
+            <div key={index}>{emotion}</div>
+          ))}
+        </div>
+      ) : (
+        <header>Loading...</header>
+      )}
     </div>
   );
 }
