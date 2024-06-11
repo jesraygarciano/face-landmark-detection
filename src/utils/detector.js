@@ -24,14 +24,10 @@ export const runDetector = async (video, canvas, setEmotions) => {
         .withFaceExpressions();
       if (detections.length > 0) {
         const expressions = detections[0].expressions;
-        const sortedEmotions = Object.entries(expressions).sort(
-          (a, b) => b[1] - a[1]
+        const emotionList = Object.entries(expressions).map(
+          (emotion) => `${emotion[0]}: ${emotion[1].toFixed(2)}`
         );
-        setEmotions(
-          sortedEmotions.map(
-            (emotion) => `${emotion[0]}: ${emotion[1].toFixed(2)}`
-          )
-        );
+        setEmotions(emotionList);
       }
       requestAnimationFrame(() => drawMesh(face, ctx));
     }
