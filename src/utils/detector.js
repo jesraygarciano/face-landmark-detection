@@ -34,7 +34,7 @@ export const runDetector = async (
 
   let blinkCount = 0;
   let blinkThreshold = 0.25; // Threshold for EAR to detect blink
-  let consecutiveFrames = 3; // Number of consecutive frames to confirm a blink
+  let consecutiveFrames = 5; // Number of consecutive frames to confirm a blink
   let frameCounter = 0;
 
   const detect = async (net) => {
