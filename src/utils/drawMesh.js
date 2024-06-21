@@ -29,6 +29,6 @@ const drawPath = (ctx, points, closePath) => {
     region.lineTo(point.x, point.y);
   }
   if (closePath) region.closePath();
-  ctx.stokeStyle = "black";
+  ctx.strokeStyle = "black";
   ctx.stroke(region);
 };
