@@ -2,6 +2,21 @@ import * as faceLandmarksDetection from "@tensorflow-models/face-landmarks-detec
 import * as faceapi from "@vladmandic/face-api";
 import { drawMesh } from "./drawMesh";
 
+// Function to calculate Euclidean distance
+const euclideanDistance = (point1, point2) => {
+  const dx = point1.x - point2.x;
+  const dy = point1.y - point2.y;
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
+// Function to calculate Eye Aspect Ratio (EAR)
+const calculateEAR = (eye) => {
+  const A = euclideanDistance(eye[1], eye[5]);
+  const B = euclideanDistance(eye[2], eye[4]);
+  const C = euclideanDistance(eye[0], eye[3]);
+  return (A + B) / (2.0 * C);
+};
+
 export const runDetector = async (
   video,
   canvas,
@@ -17,9 +32,10 @@ export const runDetector = async (
     detectorConfig
   );
 
-  let irisC = [];
-  let nowBlinking = false;
   let blinkCount = 0;
+  let blinkThreshold = 0.25; // Threshold for EAR to detect blink
+  let consecutiveFrames = 3; // Number of consecutive frames to confirm a blink
+  let frameCounter = 0;
 
   const detect = async (net) => {
     const estimationConfig = { flipHorizontal: false };
@@ -40,39 +56,35 @@ export const runDetector = async (
         setEmotions(emotionList);
 
         const landmarks = detections[0].landmarks.positions;
-        const x_ = landmarks[37].x;
-        const y_ = landmarks[37].y;
-        const w_ = landmarks[38].x - landmarks[37].x;
-        const h_ = landmarks[41].y - landmarks[37].y;
+        const leftEye = [
+          landmarks[36],
+          landmarks[37],
+          landmarks[38],
+          landmarks[39],
+          landmarks[40],
+          landmarks[41],
+        ];
+        const rightEye = [
+          landmarks[42],
+          landmarks[43],
+          landmarks[44],
+          landmarks[45],
+          landmarks[46],
+          landmarks[47],
+        ];
 
-        const frame = ctx.getImageData(0, 0, video.width, video.height);
-        const p_ =
-          Math.floor(x_ + w_ / 2) + Math.floor(y_ + h_ / 2) * video.width;
-        const v_ = Math.floor(
-          (frame.data[p_ * 4 + 0] +
-            frame.data[p_ * 4 + 1] +
-            frame.data[p_ * 4 + 2]) /
-            3
-        );
+        const leftEAR = calculateEAR(leftEye);
+        const rightEAR = calculateEAR(rightEye);
+        const ear = (leftEAR + rightEAR) / 2.0;
 
-        irisC.push(v_);
-        if (irisC.length > 100) {
-          irisC.shift();
-        }
-
-        let meanIrisC =
-          irisC.reduce((sum, element) => sum + element, 0) / irisC.length;
-        let vThreshold = 1.5;
-        let currentIrisC = irisC[irisC.length - 1];
-
-        if (irisC.length === 100) {
-          if (!nowBlinking && currentIrisC >= meanIrisC * vThreshold) {
-            nowBlinking = true;
-          } else if (nowBlinking && currentIrisC < meanIrisC * vThreshold) {
-            nowBlinking = false;
+        if (ear < blinkThreshold) {
+          frameCounter += 1;
+        } else {
+          if (frameCounter >= consecutiveFrames) {
             blinkCount += 1;
             setBlinkCount(blinkCount);
           }
+          frameCounter = 0;
         }
       }
       requestAnimationFrame(() => drawMesh(face, ctx));
