@@ -20,13 +20,14 @@ function App() {
   const canvasRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const [emotions, setEmotions] = useState([]);
+  const [blinkCount, setBlinkCount] = useState(0);
 
   useEffect(() => {
     const loadModels = async () => {
       await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
-      await faceapi.nets.faceExpressionNet.loadFromUri("/models");
       await faceapi.nets.faceLandmark68Net.loadFromUri("/models");
       await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
+      await faceapi.nets.faceExpressionNet.loadFromUri("/models");
     };
     loadModels();
   }, []);
@@ -35,7 +36,7 @@ function App() {
     const video = videoNode.target;
     if (video.readyState !== 4) return;
     if (loaded) return;
-    runDetector(video, canvasRef.current, setEmotions);
+    runDetector(video, canvasRef.current, setEmotions, setBlinkCount);
     setLoaded(true);
   };
 
@@ -59,6 +60,7 @@ function App() {
           {emotions.map((emotion, index) => (
             <div key={index}>{emotion}</div>
           ))}
+          <div>Blinks: {blinkCount}</div>
         </div>
       ) : (
         <header>Loading...</header>
